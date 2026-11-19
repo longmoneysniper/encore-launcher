@@ -30,7 +30,17 @@ data class HomeUiState(
     val error: String? = null,
     val userName: String = "",
     val serverUrl: String = "",
-)
+    val pinned: List<String> = emptyList(),
+    val hidden: Set<String> = emptySet(),
+) {
+    val visibleApps: List<LaunchableApp> get() = apps.filter { it.packageName !in hidden }
+    val hiddenApps: List<LaunchableApp> get() = apps.filter { it.packageName in hidden }
+
+    /** Dock: your pinned apps in your order, or the first few apps until you pin something. */
+    val dockApps: List<LaunchableApp>
+        get() = (if (pinned.isEmpty()) visibleApps.take(6)
+        else pinned.mapNotNull { p -> visibleApps.find { it.packageName == p } }).take(8)
+}
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -38,15 +48,52 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val api = JellyfinApi(prefs)
     private val appsRepository = AppsRepository(application)
 
+    private val layoutPrefs = application.getSharedPreferences("layout", 0)
+
     private val _state = MutableStateFlow(
         HomeUiState(
             showLogin = !prefs.isLoggedIn,
             loading = prefs.isLoggedIn,
             userName = prefs.userName,
             serverUrl = prefs.serverUrl,
+            pinned = loadList("pinned"),
+            hidden = loadList("hidden").toSet(),
         )
     )
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
+
+    private fun loadList(key: String): List<String> =
+        layoutPrefs.getString(key, "").orEmpty().split(",").filter { it.isNotBlank() }
+
+    private fun saveLayout(pinned: List<String>, hidden: Set<String>) {
+        layoutPrefs.edit().putString("pinned", pinned.joinToString(",")).putString("hidden", hidden.joinToString(",")).apply()
+        _state.update { it.copy(pinned = pinned, hidden = hidden) }
+    }
+
+    /** Pin or unpin an app on the dock (max 8). */
+    fun togglePin(pkg: String) {
+        val s = _state.value
+        val current = if (s.pinned.isEmpty()) s.dockApps.map { it.packageName } else s.pinned
+        val next = if (pkg in current) current - pkg else if (current.size < 8) current + pkg else current
+        saveLayout(next, s.hidden)
+    }
+
+    fun movePin(pkg: String, delta: Int) {
+        val s = _state.value
+        val list = (if (s.pinned.isEmpty()) s.dockApps.map { it.packageName } else s.pinned).toMutableList()
+        val i = list.indexOf(pkg)
+        val j = i + delta
+        if (i < 0 || j !in list.indices) return
+        list[i] = list[j].also { list[j] = list[i] }
+        saveLayout(list, s.hidden)
+    }
+
+    /** Hide or show an app everywhere in Encore (it stays installed). */
+    fun toggleHide(pkg: String) {
+        val s = _state.value
+        if (pkg in s.hidden) saveLayout(s.pinned, s.hidden - pkg)
+        else saveLayout((if (s.pinned.isEmpty()) s.dockApps.map { it.packageName } else s.pinned) - pkg, s.hidden + pkg)
+    }
 
     private val setupPrefs = application.getSharedPreferences("setup", 0)
 
