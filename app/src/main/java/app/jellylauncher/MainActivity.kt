@@ -50,8 +50,13 @@ class MainActivity : ComponentActivity() {
                     )
                 } else if (state.showAllApps) {
                     AllAppsScreen(
-                        apps = state.apps,
+                        visibleApps = state.visibleApps,
+                        hiddenApps = state.hiddenApps,
+                        pinned = (if (state.pinned.isEmpty()) state.dockApps.map { it.packageName } else state.pinned),
                         onLaunch = ::launchApp,
+                        onTogglePin = viewModel::togglePin,
+                        onMovePin = viewModel::movePin,
+                        onToggleHide = viewModel::toggleHide,
                         onClose = viewModel::closeAllApps,
                     )
                 } else {
