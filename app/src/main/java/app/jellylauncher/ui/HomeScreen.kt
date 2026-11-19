@@ -51,7 +51,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.Shadow
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -64,7 +67,6 @@ import kotlinx.coroutines.delay
 import java.util.Date
 
 private val Gold = Color(0xFFFFC145)
-private const val DOCK_APP_COUNT = 6
 
 @Composable
 fun HomeScreen(
@@ -206,7 +208,7 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    for (app in state.apps.take(DOCK_APP_COUNT)) {
+                    for (app in state.dockApps) {
                         FocusCard(
                             modifier = Modifier.size(dockTile),
                             shape = RoundedCornerShape(12.dp),
@@ -265,19 +267,25 @@ private fun HeroDetails(hero: ResumeCard) {
             Text(
                 hero.kicker,
                 color = Gold,
-                fontSize = 12.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
+                letterSpacing = 2.sp,
+                style = TextStyle(fontFamily = FontFamily(android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.BOLD))),
             )
             Spacer(Modifier.height(4.dp))
         }
         Text(
             hero.title,
             color = Color.White,
-            fontSize = 38.sp,
+            fontSize = 40.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
+            style = TextStyle(
+                fontFamily = FontFamily.Serif,
+                lineHeight = 46.sp,
+                shadow = Shadow(Color.Black.copy(alpha = 0.6f), Offset(0f, 3f), 10f),
+            ),
         )
         if (hero.subtitle.isNotEmpty()) {
             Spacer(Modifier.height(4.dp))
